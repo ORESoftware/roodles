@@ -69,8 +69,6 @@ if (opts.help) {
   process.exit(0);
 }
 
-console.log("# opts:", opts);
-
 exec = opts._args[0];
 
 if (opts._args.length < 1) {
@@ -117,10 +115,6 @@ else {
 
 exec = path.isAbsolute(exec) ? exec : path.resolve(projectRoot + '/' + exec);
 
-console.log(chalk.red(exec));
-
-console.log('process args => ', opts.process_args);
-
 try {
   if (!fs.statSync(exec).isFile()) {
     throw ' => not a file'
@@ -135,14 +129,22 @@ const defaults = {
   verbosity: 2,
   processArgs: [],
   include: projectRoot,
-  exclude: [/node_modules/, /public/, /bower_components/, /.git/, /.idea/]
+  exclude: [
+    /node_modules/,
+    /public/,
+    /bower_components/,
+    /.git/,
+    /.idea/,
+    /package.json/,
+    /test/
+  ]
 };
 
 
 var roodlesConf;
 
 try {
-  roodlesConf = require(projectRoot + '/roodles.conf.json');
+  roodlesConf = require(projectRoot + '/roodles.conf.js');
 }
 catch (err) {
   roodlesConf = {};
@@ -225,7 +227,7 @@ watcher.once('ready', function () {
       console.log(chalk.cyan(' => Roodles is now starting your process...'));
     }
     else{
-      console.log(chalk.blue(' => Roodles is re-starting your process...'));
+      console.log(chalk.black.bold(' => Roodles is re-starting your process...'));
     }
 
 
@@ -299,8 +301,7 @@ watcher.once('ready', function () {
 
 
   watcher.on('unlink', path => {
-
-
+      // noop
   });
 
 });

@@ -1,0 +1,5 @@
+.idea
+node_modules
+suman.conf.js
+test
+.gitignore
