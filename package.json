@@ -1,0 +1,30 @@
+{
+  "name": "roodles",
+  "version": "0.0.1001",
+  "description": "Like nodemon but hopefully better",
+  "main": "index.js",
+  "scripts": {
+    "test": "suman"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ORESoftware/roodles.git"
+  },
+  "keywords": [
+    "nodemon",
+    "restart",
+    "dev",
+    "dev-server",
+    "development"
+  ],
+  "author": "Olegzandr",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ORESoftware/roodles/issues"
+  },
+  "homepage": "https://github.com/ORESoftware/roodles#readme",
+  "devDependencies": {
+    "chalk": "^1.1.3",
+    "chokidar": "^1.6.1"
+  }
+}
