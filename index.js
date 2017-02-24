@@ -179,8 +179,10 @@ catch (err) {
 }
 
 console.log('\n');
-console.log(chalk.green.bold('=> Here is your combined roodles configuration => '));
-console.log(chalk.green(util.inspect(roodlesConf)));
+if(roodlesConf.verbosity > 1){
+  console.log(chalk.green.bold('=> Here is your combined roodles configuration => '));
+  console.log(chalk.green(util.inspect(roodlesConf)));
+}
 
 
 // const ignored = [
@@ -202,11 +204,12 @@ const absouluteIgnored = exclude.map(function (item) {
 const joined = absouluteIgnored.join('|');
 const rgx = new RegExp('(' + joined + ')');
 
-console.log('\n', chalk.cyan(' => Ignored paths => '));
-absouluteIgnored.forEach(function (p) {
-  console.log(chalk.grey(p));
-});
-
+if(roodlesConf.verbosity > 1){
+  console.log('\n', chalk.cyan(' => Ignored paths => '));
+  absouluteIgnored.forEach(function (p) {
+    console.log(chalk.grey(p));
+  });
+}
 
 // const include = _.flatten([roodlesConf.include]);
 
@@ -222,14 +225,16 @@ let errors = 0;
 
 watcher.once('ready', function () {
 
-  console.log('\n', chalk.magenta(' => watched files => '));
-  const watched = watcher.getWatched();
-  Object.keys(watched).forEach(function (k) {
-    const values = watched[k];
-    values.forEach(function (p) {
-      console.log(chalk.grey(path.resolve(k + '/' + p)));
-    })
-  });
+  if(roodlesConf.verbosity > 2){
+    console.log('\n', chalk.magenta(' => watched files => '));
+    const watched = watcher.getWatched();
+    Object.keys(watched).forEach(function (k) {
+      const values = watched[k];
+      values.forEach(function (p) {
+        console.log(chalk.grey(path.resolve(k + '/' + p)));
+      })
+    });
+  }
 
   function launch() {
 
