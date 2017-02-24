@@ -28,7 +28,7 @@ module.exports = Object.freeze({
 ```
 
 
-## Here's the API
+## Usage: Here's the API
 
 _Currently the API is a command line interface (CLI) only._
 
@@ -38,7 +38,7 @@ After installing locally, you can run:
 ./node_modules/.bin/roodles 
 ```
 
-if you don't use the roodles.conf.js file, then you will need to
+if you don't use the ```roodles.conf.js``` file, then you will need to
 at the very least specify which exec file to use.
 
 To specify that, you can use:
@@ -46,6 +46,22 @@ To specify that, you can use:
 ```terminal
 ./node_modules/.bin/roodles --exec <file>
 ```
+
+
+
+### Remember
+
+To use roodles, your --exec file must have a hashbang; with node.js, that looks like:
+
+```js
+#!/usr/bin/env node
+console.log('this node.js file has a hashbang at the top, telling ' +
+ 'the OS which executable to use to execute the file.');
+```
+
+Using the hashbang scheme means you can easily go beyond node.js exec scripts, and use bash, python, ruby,
+perl, or even binary files like golang executables (which don't need a hashbang), etc, etc.
+
 
 ## Here are the default roodles.conf.js options:
 
