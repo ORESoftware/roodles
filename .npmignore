@@ -3,3 +3,6 @@ node_modules
 suman.conf.js
 test
 .gitignore
+@build.sh
+@link.sh
+@test.sh

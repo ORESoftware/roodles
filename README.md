@@ -90,15 +90,17 @@ const defaults = {
 usage: roodles foo.js [OPTIONS]
 options:
     --version                Print tool version and exit.
-    -h, --help               Print this help and exit.
-    -v INT, --verbosity=INT  Verbosity level => 1, 2, 3, the higher the more
-                             verbose, default is 2.
+    -h, --help               Print the help information and exit.
+    -v INT, --verbosity=INT  Verbosity level => 1, 2, or 3; the higher the more
+                             verbose; default is 2.
     --process-args=ARG       These args are directly passed to your running
                              process.
-    --exec=ARG               Relative path of the file you wish to execute (and
-                             re-execute on changes).
-    --include=ARG            Include these paths.
-    --exclude=ARG            Exclude these paths.
+    --exec=ARG               Relative or absolute path of the file you wish to
+                             execute (and re-execute on changes).
+    --include=ARG            Include these paths (array of regex and/or
+                             strings).
+    --exclude=ARG            Exclude these paths (array of regex and/or
+                             strings).
 
 ```
 
