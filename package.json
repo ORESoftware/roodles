@@ -1,6 +1,6 @@
 {
   "name": "roodles",
-  "version": "0.0.1007",
+  "version": "0.0.1008",
   "description": "Like nodemon but hopefully better",
   "main": "index.js",
   "bin": {
