@@ -10,6 +10,7 @@ const util = require('util');
 const dashdash = require('dashdash');
 const chokidar = require('chokidar');
 const chalk = require('chalk');
+const _ = require('underscore');
 
 //project
 const cwd = process.cwd();
@@ -28,9 +29,14 @@ var options = [
     help: 'Print this help and exit.'
   },
   {
-    names: ['verbose', 'v'],
-    type: 'arrayOfBool',
-    help: 'Verbose output. Use multiple times for more verbose.'
+    names: ['verbosity', 'v'],
+    type: 'integer',
+    help: 'Verbosity level => 1, 2, 3, the higher the more verbose, default is 2.'
+  },
+  {
+    names: ['process-args'],
+    type: 'arrayOfString',
+    help: 'These args are directly passed to your running process.'
   },
   {
     names: ['include'],
@@ -48,27 +54,11 @@ var options = [
 var parser = dashdash.createParser({options: options});
 var opts;
 try {
-   opts = parser.parse(process.argv);
+  opts = parser.parse(process.argv);
 } catch (e) {
   console.error('[roodles]: error: %s', e.message);
   process.exit(1);
 }
-
-console.log("# opts:", opts);
-
-const file = opts._args[0];
-
-if(opts._args.length < 1){
-  throw new Error(' => [roodles] => You must supply a .js script for roodles to execute.')
-}
-
-try{
-  var isFile = fs.statSync(file).isFile();
-}
-catch(err){
-  throw ' => [roodles] => Not a file => ' + err;
-}
-
 
 // Use `parser.help()` for formatted options help.
 if (opts.help) {
@@ -77,6 +67,20 @@ if (opts.help) {
     + 'options:\n'
     + help);
   process.exit(0);
+}
+
+console.log("# opts:", opts);
+
+exec = opts._args[0];
+
+if (opts._args.length < 1) {
+  throw new Error(' => [roodles] => You must supply a .js script for roodles to execute.')
+}
+
+
+if (opts._args.length > 1) {
+  throw new Error(' => [roodles] => You supplied too many arguments (should be just one) => '
+    + chalk.bgCyan.black.bold(JSON.stringify(opts._args)))
 }
 
 
@@ -103,34 +107,81 @@ function findRoot(pth) {
 
 const projectRoot = findRoot(cwd);
 
-if(!projectRoot){
+if (!projectRoot) {
   throw new Error('Could not find project root given cwd => ', cwd);
 }
-else{
+else {
   console.log(' => [roodles] project root => ', projectRoot);
 }
 
 
+exec = path.isAbsolute(exec) ? exec : path.resolve(projectRoot + '/' + exec);
+
+console.log(chalk.red(exec));
+
+console.log('process args => ', opts.process_args);
+
+try {
+  if (!fs.statSync(exec).isFile()) {
+    throw ' => not a file'
+  }
+}
+catch (err) {
+  throw ' => [roodles] => ' + err;
+}
+
+
+const defaults = {
+  verbosity: 2,
+  processArgs: [],
+  include: projectRoot,
+  exclude: [/node_modules/, /public/, /bower_components/, /.git/, /.idea/]
+};
+
+
 var roodlesConf;
 
-try{
+try {
   roodlesConf = require(projectRoot + '/roodles.conf.json');
 }
-catch(err){
+catch (err) {
   roodlesConf = {};
 }
 
+const override = {};
 
-const ignored = [
-  'public',
-  '.git',
-  '.idea',
-  'package.json',
-  'dev-server.js',
-  'node_modules'
-];
+if(opts.include){
+  override.include = opts.include;
+}
 
-const absouluteIgnored = ignored.map(function (item) {
+if(opts.exclude){
+  override.include = opts.include;
+}
+
+if(opts.process_args){
+  override.processArgs = opts.process_args;
+}
+
+if(opts.verbosity){
+  override.verbosity = opts.verbosity;
+}
+
+
+roodlesConf = Object.assign(defaults, roodlesConf, override);
+
+// const ignored = [
+//   'public',
+//   '.git',
+//   '.idea',
+//   'package.json',
+//   'dev-server.js',
+//   'node_modules'
+// ];
+
+
+const exclude = _.flatten([roodlesConf.exclude]);
+
+const absouluteIgnored = exclude.map(function (item) {
   return '^' + path.resolve(__dirname + '/' + item);
 });
 
@@ -142,14 +193,17 @@ absouluteIgnored.forEach(function (p) {
   console.log(chalk.grey(p));
 });
 
+
+// const include = _.flatten([roodlesConf.include]);
+
 // Initialize watcher.
-const watcher = chokidar.watch(__dirname, {
+const watcher = chokidar.watch(roodlesConf.include, {
   ignored: rgx,
   persistent: true,
   ignoreInitial: true,
 });
 
-
+let first = true;
 let errors = 0;
 
 watcher.once('ready', function () {
@@ -164,9 +218,21 @@ watcher.once('ready', function () {
   });
 
   function launch() {
-    let n = cp.spawn('node', [exec], {
+
+    console.log('\n');
+    if(first){
+      first = false;
+      console.log(chalk.cyan(' => Roodles is now starting your process...'));
+    }
+    else{
+      console.log(chalk.blue(' => Roodles is re-starting your process...'));
+    }
+
+
+    let n = cp.spawn(exec, roodlesConf.processArgs, {
       env: Object.assign({}, process.env, {})
     });
+
 
     n.once('error', function (err) {
       console.log(' => Server error => ', err.stack || err);
@@ -213,23 +279,23 @@ watcher.once('ready', function () {
 
   process.stdin.on('data', function (d) {
     if (String(d).trim() === 'rs') {
-      console.log(' => relaunching dev server');
+      console.log(' => "rs" captured...relaunching dev server...');
       killAndRestart();
     }
   });
 
   watcher.on('add', path => {
     console.log(' => watched file added => ', path);
-  console.log(' => restarting server');
-  killAndRestart();
-});
+    console.log(' => restarting server');
+    killAndRestart();
+  });
 
 
   watcher.on('change', path => {
     console.log(' => watched file changed => ', path);
-  console.log(' => restarting server');
-  killAndRestart();
-});
+    console.log(' => restarting server');
+    killAndRestart();
+  });
 
 
   watcher.on('unlink', path => {
