@@ -3,6 +3,9 @@
   "version": "0.0.1001",
   "description": "Like nodemon but hopefully better",
   "main": "index.js",
+  "bin": {
+    "roodles": "index.js"
+  },
   "scripts": {
     "test": "suman"
   },
@@ -25,6 +28,10 @@
   "homepage": "https://github.com/ORESoftware/roodles#readme",
   "devDependencies": {
     "chalk": "^1.1.3",
-    "chokidar": "^1.6.1"
+    "chokidar": "^1.6.1",
+    "suman": "github:sumanjs/suman#dev"
+  },
+  "dependencies": {
+    "dashdash": "^1.14.1"
   }
 }

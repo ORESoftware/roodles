@@ -1,17 +1,124 @@
 #!/usr/bin/env node
 
-/*
- nodemon was messing up big time, so we wrote this
- */
-
-
+//core
 const cp = require('child_process');
-const chokidar = require('chokidar');
+const fs = require('fs');
 const path = require('path');
 const util = require('util');
+
+//npm
+const dashdash = require('dashdash');
+const chokidar = require('chokidar');
 const chalk = require('chalk');
 
-const exec = path.resolve(__dirname + '/bin/www.js');
+//project
+const cwd = process.cwd();
+var exec;
+
+
+var options = [
+  {
+    name: 'version',
+    type: 'bool',
+    help: 'Print tool version and exit.'
+  },
+  {
+    names: ['help', 'h'],
+    type: 'bool',
+    help: 'Print this help and exit.'
+  },
+  {
+    names: ['verbose', 'v'],
+    type: 'arrayOfBool',
+    help: 'Verbose output. Use multiple times for more verbose.'
+  },
+  {
+    names: ['include'],
+    type: 'arrayOfString',
+    help: 'Include these paths.'
+  },
+  {
+    names: ['exclude'],
+    type: 'arrayOfString',
+    help: 'Exclude these paths.'
+  }
+];
+
+
+var parser = dashdash.createParser({options: options});
+var opts;
+try {
+   opts = parser.parse(process.argv);
+} catch (e) {
+  console.error('[roodles]: error: %s', e.message);
+  process.exit(1);
+}
+
+console.log("# opts:", opts);
+
+const file = opts._args[0];
+
+if(opts._args.length < 1){
+  throw new Error(' => [roodles] => You must supply a .js script for roodles to execute.')
+}
+
+try{
+  var isFile = fs.statSync(file).isFile();
+}
+catch(err){
+  throw ' => [roodles] => Not a file => ' + err;
+}
+
+
+// Use `parser.help()` for formatted options help.
+if (opts.help) {
+  var help = parser.help({includeEnv: true}).trimRight();
+  console.log('usage: roodles foo.js [OPTIONS]\n'
+    + 'options:\n'
+    + help);
+  process.exit(0);
+}
+
+
+function findRoot(pth) {
+
+  var possiblePkgDotJsonPath = path.resolve(path.normalize(String(pth) + '/package.json'));
+
+  try {
+    fs.statSync(possiblePkgDotJsonPath).isFile();
+    return pth;
+  }
+  catch (err) {
+    var subPath = path.resolve(path.normalize(String(pth) + '/../'));
+    if (subPath === pth) {
+      return null;
+    }
+    else {
+      return findRoot(subPath);
+    }
+  }
+
+}
+
+
+const projectRoot = findRoot(cwd);
+
+if(!projectRoot){
+  throw new Error('Could not find project root given cwd => ', cwd);
+}
+else{
+  console.log(' => [roodles] project root => ', projectRoot);
+}
+
+
+var roodlesConf;
+
+try{
+  roodlesConf = require(projectRoot + '/roodles.conf.json');
+}
+catch(err){
+  roodlesConf = {};
+}
 
 
 const ignored = [
