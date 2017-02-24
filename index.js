@@ -153,7 +153,7 @@ if(opts.include){
 }
 
 if(opts.exclude){
-  override.include = opts.include;
+  override.exlude = opts.exclude;
 }
 
 if(opts.process_args){
