@@ -18,7 +18,7 @@ You can put a ```roodles.conf.js``` file at the root of your project:
 //roodles.conf.js
 
 module.exports = Object.freeze({
-   exec: '<path-to-exec-file>',  // any file with a hashbang
+   exec: '<path-to-exec-file>',  // any binary file or a file with a hashbang
    include: ['c'],   // list of regexes or strings
    exclude: [/a/,'b'],
    verbosity: 2,  // an integer {1,2,3}
@@ -51,7 +51,7 @@ To specify that, you can use:
 
 ### Remember
 
-To use roodles, your --exec file must have a hashbang; with node.js, that looks like:
+To use roodles, your --exec file must be binary or have a hashbang; with node.js, that looks like:
 
 ```js
 #!/usr/bin/env node
@@ -112,3 +112,37 @@ At some point I would have used this name for a software project.
 This was the right one. I think of roodles being similar to "redo"...like, "restart". 
 
 roodles~redo.
+
+
+## Example
+
+Here is an example exec file (a server, which is standard use case):
+
+```js
+#!/usr/bin/env node
+
+const http = require('http');
+
+const server = http.createServer(function (req, res) {
+  setTimeout(function () {
+    res.send('flowers');
+  }, 100);
+});
+
+server.listen(3000, function () {
+  
+  console.log(' => Server is listening on port 3000');
+
+  process.once('SIGINT', function (code) {
+    console.log('SIGINT received...');
+    server.close();
+    process.exit(code);
+  });
+
+});
+
+
+```
+
+note the hashbang as well as the process.once('SIGINT') handler, which will help guarantee the port is free
+when the process gets killed.

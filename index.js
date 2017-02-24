@@ -65,7 +65,6 @@ try {
   process.exit(1);
 }
 
-// Use `parser.help()` for formatted options help.
 if (opts.help) {
   var help = parser.help({includeEnv: true}).trimRight();
   console.log('usage: roodles foo.js [OPTIONS]\n'
@@ -76,12 +75,7 @@ if (opts.help) {
 
 exec = opts._args[0];
 
-if (opts._args.length < 1) {
-  throw new Error(' => [roodles] => You must supply a .js script for roodles to execute.')
-}
-
-
-if (opts._args.length > 1) {
+if (opts._args.length > 0) {
   throw new Error(' => [roodles] => You supplied too many arguments (should be just one) => '
     + chalk.bgCyan.black.bold(JSON.stringify(opts._args)))
 }
@@ -118,18 +112,6 @@ else {
 }
 
 
-exec = path.isAbsolute(exec) ? exec : path.resolve(projectRoot + '/' + exec);
-
-try {
-  if (!fs.statSync(exec).isFile()) {
-    throw ' => not a file'
-  }
-}
-catch (err) {
-  throw ' => [roodles] => ' + err;
-}
-
-
 const defaults = {
   verbosity: 2,
   processArgs: [],
@@ -158,6 +140,14 @@ catch (err) {
 
 const override = {};
 
+if(opts.exec){
+  override.exec = opts.exec;
+}
+else if(!roodlesConf.exec){
+  throw new Error(' => Roodles needs an --exec file to run!\nYou can specify one with "exec" in your ' +
+    'roodles.conf.js file or you can pass one at the command line with the --exec option');
+}
+
 if(opts.include){
   override.include = opts.include;
 }
@@ -176,6 +166,22 @@ if(opts.verbosity){
 
 
 roodlesConf = Object.assign(defaults, roodlesConf, override);
+exec = roodlesConf.exec = path.resolve(projectRoot + '/' + roodlesConf.exec);
+
+
+try {
+  if (!fs.statSync(exec).isFile()) {
+    throw ' => not a file'
+  }
+}
+catch (err) {
+  throw  err;
+}
+
+console.log('\n');
+console.log(chalk.green.bold('=> Here is your combined roodles configuration => '));
+console.log(chalk.green(util.inspect(roodlesConf)));
+
 
 // const ignored = [
 //   'public',
