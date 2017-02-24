@@ -26,12 +26,12 @@ var options = [
   {
     names: ['help', 'h'],
     type: 'bool',
-    help: 'Print this help and exit.'
+    help: 'Print the help information and exit.'
   },
   {
     names: ['verbosity', 'v'],
     type: 'integer',
-    help: 'Verbosity level => 1, 2, 3, the higher the more verbose, default is 2.'
+    help: 'Verbosity level => 1, 2, or 3; the higher the more verbose; default is 2.'
   },
   {
     names: ['process-args'],
@@ -39,14 +39,19 @@ var options = [
     help: 'These args are directly passed to your running process.'
   },
   {
+    names: ['exec'],
+    type: 'string',
+    help: 'Relative or absolute path of the file you wish to execute (and re-execute on changes).'
+  },
+  {
     names: ['include'],
     type: 'arrayOfString',
-    help: 'Include these paths.'
+    help: 'Include these paths (array of regex and/or strings).'
   },
   {
     names: ['exclude'],
     type: 'arrayOfString',
-    help: 'Exclude these paths.'
+    help: 'Exclude these paths (array of regex and/or strings).'
   }
 ];
 
@@ -133,10 +138,11 @@ const defaults = {
     /node_modules/,
     /public/,
     /bower_components/,
-    /.git/,
+    /.git\/.*/,
     /.idea/,
     /package.json/,
-    /test/
+    /test/,
+    '.*\.js'
   ]
 };
 
