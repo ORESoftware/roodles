@@ -31,7 +31,7 @@ var options = [
   {
     names: ['verbosity', 'v'],
     type: 'integer',
-    help: 'Verbosity level => 1, 2, or 3; the higher the more verbose; default is 2.'
+    help: 'Verbosity level => {1, 2, or 3}; the higher, the more verbose; default is 2.'
   },
   {
     names: ['process-args'],
@@ -171,7 +171,7 @@ exec = roodlesConf.exec = path.resolve(projectRoot + '/' + roodlesConf.exec);
 
 try {
   if (!fs.statSync(exec).isFile()) {
-    throw ' => not a file'
+    throw ' => "--exec" option value is not a file'
   }
 }
 catch (err) {
@@ -183,16 +183,6 @@ if(roodlesConf.verbosity > 1){
   console.log(chalk.green.bold('=> Here is your combined roodles configuration => '));
   console.log(chalk.green(util.inspect(roodlesConf)));
 }
-
-
-// const ignored = [
-//   'public',
-//   '.git',
-//   '.idea',
-//   'package.json',
-//   'dev-server.js',
-//   'node_modules'
-// ];
 
 
 const exclude = _.flatten([roodlesConf.exclude]);
