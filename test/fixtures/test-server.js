@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const http = require('http');
+const assert = require('assert');
+
 
 const server = http.createServer(function (req, res) {
   setTimeout(function () {
@@ -19,9 +21,15 @@ server.listen(3000, function () {
     process.exit(exitCode || 0);
   });
 
-  process.once('SIGINT', function (code) {
+  process.once('SIGINT', function () {
     console.log('SIGINT received...');
-    exitCode = 2;
+    exitCode = 1;
+    server.close();
+  });
+
+  process.once('SIGTERM', function () {
+    console.log('SIGTERM received...');
+    exitCode = 1;
     server.close();
   });
 

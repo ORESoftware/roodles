@@ -178,11 +178,9 @@ else if (!roodlesConf.exec) {
 }
 
 if (opts.signal) {
-
-  console.log('OPTS SIGNAL => ', opts.signal);
-  override.signal = opts.signal;
-  assert(['SIGINT', 'SIGTERM', 'SIGKILL'].indexOf(override.signal) > -1, ' => Value passed as "signal" option needs to ' +
-    'be one of {"SIGINT","SIGTERM","SIGKILL"},\nyou passed => "' + override.signal + '".');
+  override.signal = String(opts.signal).trim();
+  assert(['SIGINT', 'SIGTERM', 'SIGKILL'].indexOf(String(override.signal).trim()) > -1, ' => Value passed as "signal" ' +
+    'option needs to be one of {"SIGINT","SIGTERM","SIGKILL"},\nyou passed => "' + override.signal + '".');
 }
 
 if (opts.include) {
@@ -293,13 +291,11 @@ watcher.once('ready', function () {
       console.log(chalk.black.bold(' => Roodles is re-starting your process...'));
     }
 
-
     let n = cp.spawn(exec, roodlesConf.processArgs, {
       env: Object.assign({}, process.env, {})
     });
 
-
-    n.once('error', function (err) {
+    n.on('error', function (err) {
       console.log(' => Server error => ', err.stack || err);
     });
 
@@ -310,13 +306,14 @@ watcher.once('ready', function () {
 
     n.stderr.on('data', function (d) {
       if (String(d).match(/error/i)) {
-        const stck = String(d).split('\n').filter(function (s) {
-          return !String(s).match(/\/node_modules\//);
+        const stck = String(d).split('\n').filter(function (s, index) {
+          return index < 3 || (!String(s).match(/\/node_modules\//) && String(s).match(/\//));
         });
         const joined = stck.join('\n');
         console.error('\n');
         console.error(chalk.bgRed.white(' => captured stderr from your process => '));
         console.error(chalk.red.bold(joined));
+        console.log('\n');
       }
     });
 
