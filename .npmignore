@@ -6,3 +6,5 @@ test
 @build.sh
 @link.sh
 @test.sh
+roodles.conf.js
+.git
