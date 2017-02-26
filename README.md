@@ -29,11 +29,11 @@ module.exports = Object.freeze({
 
 ```
 
-# Recommend workflow
+# Recommended workflow
 
 Install roodles as a dev dependency (as described above).
 
-Then add this bash script to the root of your project:
+Then add this bash script to your project:
 
 ```bash
 #!/usr/bin/env bash
