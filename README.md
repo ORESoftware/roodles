@@ -164,7 +164,8 @@ const http = require('http');
 
 const server = http.createServer(function (req, res) {
   setTimeout(function () {
-    res.send('flowers');
+    res.write('flowers');
+    res.end();
   }, 100);
 });
 
