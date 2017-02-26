@@ -41,6 +41,11 @@ var options = [
     '--process-args="--foo bar --baz bam".'
   },
   {
+    names: ['process-log-path', 'log'],
+    type: 'string',
+    help: 'Instead of logging your process stdout/stderr to the terminal, it will send stdout/stderr to this log file.'
+  },
+  {
     names: ['restart-upon-change', 'restart-upon-changes', 'ruc'],
     type: 'bool',
     help: 'Roodles will restart your process upon file changes.'
@@ -93,7 +98,7 @@ if (opts.help) {
   console.log('\n');
   console.log('usage: roodles [OPTIONS]\n\n'
     + 'options:\n'
-    + help +'\n\n');
+    + help + '\n\n');
   process.exit(0);
 }
 
@@ -138,6 +143,10 @@ else {
   }
 }
 
+function getAbsPath(p) {
+  return path.isAbsolute(p) ? p : path.resolve(projectRoot + '/' + p);
+}
+
 
 const defaults = {
   verbosity: 2,
@@ -163,6 +172,14 @@ var roodlesConf;
 
 try {
   roodlesConf = require(projectRoot + '/roodles.conf.js');
+
+  if (roodlesConf.processLogPath) {
+    roodlesConf.processLogPath = getAbsPath(roodlesConf.processLogPath);
+  }
+  if (roodlesConf.exec) {
+    roodlesConf.exec = getAbsPath(roodlesConf.exec);
+  }
+
 }
 catch (err) {
   roodlesConf = {};
@@ -171,11 +188,15 @@ catch (err) {
 const override = {};
 
 if (opts.exec) {
-  override.exec = opts.exec;
+  override.exec = getAbsPath(opts.exec);
 }
 else if (!roodlesConf.exec) {
-  throw new Error(' => Roodles needs an --exec file to run!\nYou can specify one with "exec" in your ' +
-    'roodles.conf.js file or you can pass one at the command line with the --exec option');
+  throw new Error(' => Roodles needs an "exec" file to run!\nYou can specify one with "exec" in your ' +
+    'roodles.conf.js file or you can pass one at the command line with the "--exec" option');
+}
+
+if (opts.process_log_path) {
+  override.processLogPath = getAbsPath(opts.process_log_path);
 }
 
 if (opts.signal) {
@@ -200,19 +221,19 @@ if (opts.process_args) {
     override.processArgs = String(opts.process_args).trim().split(/\s+/)
   }
   else {
-    throw new Error(' => "processArgs needs to be either an array or string.');
+    throw new Error(' => "processArgs" needs to be either an array or string.');
   }
 }
 
-if('restart_upon_change' in opts){
+if ('restart_upon_change' in opts) {
   override.restartUponChange = opts.restart_upon_change;
 }
 
-if('restart_upon_addition' in opts){
+if ('restart_upon_addition' in opts) {
   override.restartUponAddition = opts.restart_upon_addition;
 }
 
-if('restart_upon_unlink' in opts){
+if ('restart_upon_unlink' in opts) {
   override.restartUponUnlink = opts.restart_upon_unlink;
 }
 
@@ -221,28 +242,68 @@ if (opts.verbosity) {
 }
 
 
-roodlesConf = Object.assign(defaults, roodlesConf, override);
-exec = roodlesConf.exec = path.resolve(projectRoot + '/' + roodlesConf.exec);
+const $roodlesConf = Object.assign(defaults, roodlesConf, override);
+
+var strm, success = false;
+
+function getStream(force) {
+  if (force || success) {
+    return fs.createWriteStream($roodlesConf.processLogPath, {end: true, autoClose: true})
+      .once('error',function(err){
+        console.error('\n');
+        console.error(chalk.red.bold(err.message));
+        console.log(' => You may have accidentally used a path for "exec" or "processLogPath" that begins with "/" => \n' +
+          ' if your relative path begins with "/" then you should remove that.');
+        throw err;
+      });
+  }
+}
+
+if ($roodlesConf.processLogPath) {
+  // try {
+  //   fs.statSync($roodlesConf.processLogPath);
+  // }
+  // catch (err) {
+  //   console.error(chalk.yellow.bold(' Warning => Log path was not found on the filesystem =>'), '\n',
+  //     $roodlesConf.processLogPath);
+  // }
+
+  try {
+    strm = getStream(true);
+    success = true;
+    if ($roodlesConf.verbosity > 1) {
+      console.log(' => Your process stdout/stderr will be sent to the log file at path =>', '\n',
+        $roodlesConf.processLogPath);
+    }
+  }
+  catch (err) {
+    console.error(err.message);
+    console.log(' => You may have accidentally used an absolute path for "exec" or "processLogPath",\n' +
+      'if your relative path begins with "/" then you should remove that.');
+    return;
+  }
+
+}
 
 
 try {
-  if (!fs.statSync(exec).isFile()) {
-    throw ' => "--exec" option value is not a file'
+  if (!fs.statSync($roodlesConf.exec).isFile()) {
+    throw ' => "exec" option value is not a file'
   }
 }
 catch (err) {
   throw  err;
 }
 
-if (roodlesConf.verbosity > 1) {
+if ($roodlesConf.verbosity > 1) {
   console.log('\n');
-  console.log(chalk.green.bold('=> Here is your combined roodles configuration given (1) roodles defaults (2) roodles.conf.js and (3) ' +
-    ' your command line arguments => '));
-  console.log(chalk.green(util.inspect(roodlesConf)));
+  console.log(chalk.green.bold('=> Here is your combined roodles configuration given (1) roodles defaults ' +
+    '(2) roodles.conf.js and (3) your command line arguments => '));
+  console.log(chalk.green(util.inspect($roodlesConf)));
 }
 
 
-const exclude = _.flatten([roodlesConf.exclude]);
+const exclude = _.flatten([$roodlesConf.exclude]);
 
 const absouluteIgnored = exclude.map(function (item) {
   return '^' + path.resolve(__dirname + '/' + item);
@@ -251,14 +312,14 @@ const absouluteIgnored = exclude.map(function (item) {
 const joined = absouluteIgnored.join('|');
 const rgx = new RegExp('(' + joined + ')');
 
-if (roodlesConf.verbosity > 1) {
+if ($roodlesConf.verbosity > 1) {
   console.log('\n', chalk.cyan(' => Ignored paths => '));
   absouluteIgnored.forEach(function (p) {
     console.log(chalk.grey(p));
   });
 }
 
-const include = _.flatten([roodlesConf.include]);
+const include = _.flatten([$roodlesConf.include]);
 
 const watcher = chokidar.watch(include, {
   ignored: rgx,
@@ -270,7 +331,7 @@ let first = true;
 
 watcher.once('ready', function () {
 
-  if (roodlesConf.verbosity > 2) {
+  if ($roodlesConf.verbosity > 2) {
     console.log('\n', chalk.magenta(' => watched files => '));
     const watched = watcher.getWatched();
     Object.keys(watched).forEach(function (k) {
@@ -281,19 +342,24 @@ watcher.once('ready', function () {
     });
   }
 
+
   function launch() {
 
     console.log('\n');
     if (first) {
       first = false;
-      console.log(chalk.cyan(' => Roodles is now starting your process...and will restart your process upon file changes.'),'\n');
-      console.log(' => Your process was started with => "' + exec + ' ' + roodlesConf.processArgs.join(' ') + '"');
+      console.log(chalk.cyan(' => Roodles is now starting your process...and will restart ' +
+        'your process upon file changes.'), '\n');
+      console.log(' => Your process was started with => "' + $roodlesConf.exec +
+        ' ' + $roodlesConf.processArgs.join(' ') + '"');
     }
     else {
       console.log(chalk.black.bold(' => Roodles is re-starting your process...'));
     }
 
-    let n = cp.spawn(exec, roodlesConf.processArgs);
+    strm = getStream();
+
+    let n = cp.spawn($roodlesConf.exec, $roodlesConf.processArgs);
 
     n.on('error', function (err) {
       console.log(' => Server error => ', err.stack || err);
@@ -301,8 +367,8 @@ watcher.once('ready', function () {
 
     n.stdout.setEncoding('utf8');
     n.stderr.setEncoding('utf8');
-    n.stdout.pipe(process.stdout);
-    n.stderr.pipe(process.stderr);
+    n.stdout.pipe(strm || process.stdout, {end: true, autoClose: true});
+    n.stderr.pipe(strm || process.stderr, {end: true, autoClose: true});
 
     n.stderr.on('data', function (d) {
       if (String(d).match(/error/i)) {
@@ -335,38 +401,38 @@ watcher.once('ready', function () {
       }, 300);
     });
 
-    if(roodlesConf.verbosity > 2){
-      console.log(' => Killing your process with the "' + roodlesConf.signal + '" signal.');
+    if ($roodlesConf.verbosity > 2) {
+      console.log(' => Killing your process with the "' + $roodlesConf.signal + '" signal.');
     }
 
-    k.kill(roodlesConf.signal);
+    k.kill($roodlesConf.signal);
 
   }
 
   process.stdin.on('data', function (d) {
     if (String(d).trim() === 'rs') {
-      if(roodlesConf.verbosity > 1){
+      if ($roodlesConf.verbosity > 1) {
         console.log(' => "rs" captured...');
       }
       killAndRestart();
     }
   });
 
-  if(roodlesConf.restartUponChange){
+  if ($roodlesConf.restartUponChange) {
     watcher.on('change', path => {
       console.log(' => watched file changed => ', path);
       killAndRestart();
     });
   }
 
-  if(roodlesConf.restartUponAddition){
+  if ($roodlesConf.restartUponAddition) {
     watcher.on('add', path => {
       console.log(' => File within watched path was added => ', path);
       killAndRestart();
     });
   }
 
-  if(roodlesConf.restartUponUnlink){
+  if ($roodlesConf.restartUponUnlink) {
     watcher.on('unlink', path => {
       console.log(' => file within watched path was unlinked => ', path);
       killAndRestart();

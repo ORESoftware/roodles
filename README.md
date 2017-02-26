@@ -74,6 +74,7 @@ const defaults = {
   retartUponChange: true,
   restartUponAddition: false,
   restartUponUnlink: false,
+  processLogPath: null,         // if desired, pass a relative or absolute path to log file
   include: projectRoot,         // default is to watch all files in your project
   exclude: [                    //...all files except the following!
     /node_modules/,
