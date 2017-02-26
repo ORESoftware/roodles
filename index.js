@@ -17,7 +17,6 @@ const _ = require('underscore');
 const cwd = process.cwd();
 var exec;
 
-
 var options = [
   {
     name: 'version',
@@ -83,7 +82,6 @@ var options = [
   }
 ];
 
-
 var parser = dashdash.createParser({options: options});
 var opts;
 try {
@@ -102,15 +100,12 @@ if (opts.help) {
   process.exit(0);
 }
 
-exec = opts._args[0];
-
 if (opts._args.length > 0) {
   throw new Error(' => [roodles] => You supplied too many arguments (should be zero) => '
     + chalk.bgCyan.black.bold(JSON.stringify(opts._args)))
 }
 
-
-function findRoot(pth) {
+function findRoot (pth) {
 
   var possiblePkgDotJsonPath = path.resolve(path.normalize(String(pth) + '/package.json'));
 
@@ -130,7 +125,6 @@ function findRoot(pth) {
 
 }
 
-
 const projectRoot = findRoot(cwd);
 
 if (!projectRoot) {
@@ -143,10 +137,9 @@ else {
   }
 }
 
-function getAbsPath(p) {
+function getAbsPath (p) {
   return path.isAbsolute(p) ? p : path.resolve(projectRoot + '/' + p);
 }
-
 
 const defaults = {
   verbosity: 2,
@@ -166,7 +159,6 @@ const defaults = {
     /test/
   ]
 };
-
 
 var roodlesConf;
 
@@ -241,15 +233,14 @@ if (opts.verbosity) {
   override.verbosity = opts.verbosity;
 }
 
-
 const $roodlesConf = Object.assign(defaults, roodlesConf, override);
 
 var strm, success = false;
 
-function getStream(force) {
+function getStream (force) {
   if (force || success) {
     return fs.createWriteStream($roodlesConf.processLogPath, {end: true, autoClose: true})
-      .once('error',function(err){
+      .once('error', function (err) {
         console.error('\n');
         console.error(chalk.red.bold(err.message));
         console.log(' => You may have accidentally used a path for "exec" or "processLogPath" that begins with "/" => \n' +
@@ -285,7 +276,6 @@ if ($roodlesConf.processLogPath) {
 
 }
 
-
 try {
   if (!fs.statSync($roodlesConf.exec).isFile()) {
     throw ' => "exec" option value is not a file'
@@ -302,20 +292,14 @@ if ($roodlesConf.verbosity > 1) {
   console.log(chalk.green(util.inspect($roodlesConf)));
 }
 
-
 const exclude = _.flatten([$roodlesConf.exclude]);
-
-const absouluteIgnored = exclude.map(function (item) {
-  return '^' + path.resolve(__dirname + '/' + item);
-});
-
-const joined = absouluteIgnored.join('|');
+const joined = exclude.join('|');
 const rgx = new RegExp('(' + joined + ')');
 
 if ($roodlesConf.verbosity > 1) {
-  console.log('\n', chalk.cyan(' => Ignored paths => '));
-  absouluteIgnored.forEach(function (p) {
-    console.log(chalk.grey(p));
+  console.log('\n', chalk.cyan(' => Roodles will ignore paths that match any of the following => '));
+  exclude.forEach(function (p) {
+    console.log('=> ',chalk.grey(p));
   });
 }
 
@@ -331,27 +315,37 @@ let first = true;
 
 watcher.once('ready', function () {
 
+  let count = 0;
+
   if ($roodlesConf.verbosity > 2) {
-    console.log('\n', chalk.magenta(' => watched files => '));
-    const watched = watcher.getWatched();
-    Object.keys(watched).forEach(function (k) {
-      const values = watched[k];
-      values.forEach(function (p) {
-        console.log(chalk.grey(path.resolve(k + '/' + p)));
-      })
-    });
+    console.log('\n', chalk.magenta(' => watched paths => '));
   }
 
+  const watched = watcher.getWatched();
+  Object.keys(watched).forEach(function (k) {
+    const values = watched[k];
+    values.forEach(function (p) {
+      count++;
+      if ($roodlesConf.verbosity > 2) {
+        console.log(chalk.grey(path.resolve(k + '/' + p)));
+      }
+    })
+  });
 
-  function launch() {
+  if ($roodlesConf.verbosity > 1) {
+    console.log('\n',' => Total number of watched paths => ', count,'\n');
+  }
+
+  function launch () {
 
     console.log('\n');
     if (first) {
-      first = false;
       console.log(chalk.cyan(' => Roodles is now starting your process...and will restart ' +
         'your process upon file changes.'), '\n');
-      console.log(' => Your process was started with => "' + $roodlesConf.exec +
-        ' ' + $roodlesConf.processArgs.join(' ') + '"');
+      if($roodlesConf.verbosity > 1){
+        console.log(' => Your process will be launced with the following command => "' + $roodlesConf.exec +
+          ' ' + $roodlesConf.processArgs.join(' ') + '"','\n');
+      }
     }
     else {
       console.log(chalk.black.bold(' => Roodles is re-starting your process...'));
@@ -360,6 +354,16 @@ watcher.once('ready', function () {
     strm = getStream();
 
     let n = cp.spawn($roodlesConf.exec, $roodlesConf.processArgs);
+
+    if($roodlesConf.verbosity > 1){
+      console.log(' => Your process is running with pid => ', n.pid);
+    }
+
+    if($roodlesConf.verbosity > 1 && first && !strm){
+      console.log(' => What follows is the stdout/stderr of your process => ','\n');
+    }
+
+    first = false;
 
     n.on('error', function (err) {
       console.log(' => Server error => ', err.stack || err);
@@ -391,13 +395,16 @@ watcher.once('ready', function () {
   process.stdin.resume();
   process.stdin.setEncoding('utf8');
 
-  function killAndRestart() {
+  function killAndRestart () {
     k.once('close', function () {
       k.removeAllListeners();
       k.unref();
       setTimeout(function () {
         k = launch();
-        console.log(' => New process pid => ', k.pid);
+        if($roodlesConf.verbosity > 1){
+          console.log(' => Process restarted, new process pid => ', k.pid);
+        }
+
       }, 300);
     });
 
