@@ -66,11 +66,6 @@ perl, or even binary files like golang executables (which don't need a hashbang)
 ## Here are the default roodles.conf.js options:
 
 ```js
-const defaults = {
-  verbosity: 2,     
-  processArgs: [],   
-  include: projectRoot,  
-  exclude: [             
 
 const defaults = {
   verbosity: 2,              // 1 is lowest verbosity, 3 is highest
