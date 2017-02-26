@@ -8,6 +8,8 @@ could tweak on our own. Maybe it works better, maybe it doesn't. We think it doe
 All the code is in one file, so you can steal it easily :)
 
 
+
+
 ## Installation
 
 => ```npm install -D roodles@latest```
@@ -27,8 +29,23 @@ module.exports = Object.freeze({
 
 ```
 
+# Recommend workflow
 
-## Usage: Here's the API
+Install roodles as a dev dependency (as described above).
+
+Then add this bash script to the root of your project:
+
+```bash
+#!/usr/bin/env bash
+
+cd $(dirname "$0")
+./node_modules/.bin/roodles $@
+```
+
+Then just run this bash script, and roodles will do its thing.
+
+
+# Usage: Here's the API
 
 _Currently the API is a command line interface (CLI) only._
 
@@ -38,18 +55,18 @@ After installing locally, you can run:
 ./node_modules/.bin/roodles 
 ```
 
+
 if you don't use the ```roodles.conf.js``` file, then you will need to
 at the very least specify which exec file to use.
 
-To specify that, you can use:
+To specify that, you will use the --exec option like:
 
 ```terminal
 ./node_modules/.bin/roodles --exec <file>
 ```
+remember that your --exec file must have a hashbang or be binary.
 
-
-
-### Remember
+## Remember
 
 To use roodles, your --exec file must be binary or have a hashbang; with node.js, that looks like:
 

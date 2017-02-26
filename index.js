@@ -404,8 +404,7 @@ watcher.once('ready', function () {
         if($roodlesConf.verbosity > 1){
           console.log(' => Process restarted, new process pid => ', k.pid);
         }
-
-      }, 300);
+      }, 100);
     });
 
     if ($roodlesConf.verbosity > 2) {
