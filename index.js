@@ -5,6 +5,7 @@ const cp = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+const assert = require('assert');
 
 //npm
 const dashdash = require('dashdash');
@@ -35,8 +36,24 @@ var options = [
   },
   {
     names: ['process-args'],
-    type: 'arrayOfString',
-    help: 'These args are directly passed to your running process.'
+    type: 'string',
+    help: 'These args are directly passed to your running process, surround with quotes like so: ' +
+    '--process-args="--foo bar --baz bam".'
+  },
+  {
+    names: ['restart-upon-change', 'restart-upon-changes', 'ruc'],
+    type: 'bool',
+    help: 'Roodles will restart your process upon file changes.'
+  },
+  {
+    names: ['restart-upon-addition', 'restart-upon-additions', 'rua'],
+    type: 'bool',
+    help: 'Roodles will restart your process upon file additions.'
+  },
+  {
+    names: ['restart-upon-unlink', 'restart-upon-unlinks', 'ruu'],
+    type: 'bool',
+    help: 'Roodles will restart your process upon file deletions/unlinking.'
   },
   {
     names: ['exec'],
@@ -52,6 +69,11 @@ var options = [
     names: ['exclude'],
     type: 'arrayOfString',
     help: 'Exclude these paths (array of regex and/or strings).'
+  },
+  {
+    names: ['signal', 's'],
+    type: 'string',
+    enum: ['SIGINT', 'SIGTERM', 'SIGKILL']
   }
 ];
 
@@ -76,7 +98,7 @@ if (opts.help) {
 exec = opts._args[0];
 
 if (opts._args.length > 0) {
-  throw new Error(' => [roodles] => You supplied too many arguments (should be just one) => '
+  throw new Error(' => [roodles] => You supplied too many arguments (should be zero) => '
     + chalk.bgCyan.black.bold(JSON.stringify(opts._args)))
 }
 
@@ -108,13 +130,20 @@ if (!projectRoot) {
   throw new Error('Could not find project root given cwd => ', cwd);
 }
 else {
-  console.log(' => [roodles] project root => ', projectRoot);
+  if (opts.verbosity > 1) {
+    console.log('\n');
+    console.log(chalk.cyan(' => [roodles] project root => '), chalk.cyan.bold('"' + projectRoot + '"'));
+  }
 }
 
 
 const defaults = {
   verbosity: 2,
+  signal: 'SIGKILL',
   processArgs: [],
+  retartUponChange: true,
+  restartUponAddition: false,
+  restartUponUnlink: false,
   include: projectRoot,
   exclude: [
     /node_modules/,
@@ -140,27 +169,55 @@ catch (err) {
 
 const override = {};
 
-if(opts.exec){
+if (opts.exec) {
   override.exec = opts.exec;
 }
-else if(!roodlesConf.exec){
+else if (!roodlesConf.exec) {
   throw new Error(' => Roodles needs an --exec file to run!\nYou can specify one with "exec" in your ' +
     'roodles.conf.js file or you can pass one at the command line with the --exec option');
 }
 
-if(opts.include){
+if (opts.signal) {
+
+  console.log('OPTS SIGNAL => ', opts.signal);
+  override.signal = opts.signal;
+  assert(['SIGINT', 'SIGTERM', 'SIGKILL'].indexOf(override.signal) > -1, ' => Value passed as "signal" option needs to ' +
+    'be one of {"SIGINT","SIGTERM","SIGKILL"},\nyou passed => "' + override.signal + '".');
+}
+
+if (opts.include) {
   override.include = opts.include;
 }
 
-if(opts.exclude){
-  override.exlude = opts.exclude;
+if (opts.exclude) {
+  override.exclude = opts.exclude;
 }
 
-if(opts.process_args){
-  override.processArgs = opts.process_args;
+if (opts.process_args) {
+  if (Array.isArray(opts.process_args)) {
+    override.processArgs = opts.process_args;
+  }
+  else if (typeof opts.process_args === 'string') {
+    override.processArgs = String(opts.process_args).trim().split(/\s+/)
+  }
+  else {
+    throw new Error(' => "processArgs needs to be either an array or string.');
+  }
 }
 
-if(opts.verbosity){
+if('restart_upon_change' in opts){
+  override.restartUponChange = opts.restart_upon_change;
+}
+
+if('restart_upon_addition' in opts){
+  override.restartUponAddition = opts.restart_upon_addition;
+}
+
+if('restart_upon_unlink' in opts){
+  override.restartUponUnlink = opts.restart_upon_unlink;
+}
+
+if (opts.verbosity) {
   override.verbosity = opts.verbosity;
 }
 
@@ -179,8 +236,9 @@ catch (err) {
 }
 
 console.log('\n');
-if(roodlesConf.verbosity > 1){
-  console.log(chalk.green.bold('=> Here is your combined roodles configuration => '));
+if (roodlesConf.verbosity > 1) {
+  console.log(chalk.green.bold('=> Here is your combined roodles configuration given (1) roodles defaults (2) roodles.conf.js and (3) ' +
+    ' your command line arguments => '));
   console.log(chalk.green(util.inspect(roodlesConf)));
 }
 
@@ -194,28 +252,26 @@ const absouluteIgnored = exclude.map(function (item) {
 const joined = absouluteIgnored.join('|');
 const rgx = new RegExp('(' + joined + ')');
 
-if(roodlesConf.verbosity > 1){
+if (roodlesConf.verbosity > 1) {
   console.log('\n', chalk.cyan(' => Ignored paths => '));
   absouluteIgnored.forEach(function (p) {
     console.log(chalk.grey(p));
   });
 }
 
-// const include = _.flatten([roodlesConf.include]);
+const include = _.flatten([roodlesConf.include]);
 
-// Initialize watcher.
-const watcher = chokidar.watch(roodlesConf.include, {
+const watcher = chokidar.watch(include, {
   ignored: rgx,
   persistent: true,
   ignoreInitial: true,
 });
 
 let first = true;
-let errors = 0;
 
 watcher.once('ready', function () {
 
-  if(roodlesConf.verbosity > 2){
+  if (roodlesConf.verbosity > 2) {
     console.log('\n', chalk.magenta(' => watched files => '));
     const watched = watcher.getWatched();
     Object.keys(watched).forEach(function (k) {
@@ -229,11 +285,11 @@ watcher.once('ready', function () {
   function launch() {
 
     console.log('\n');
-    if(first){
+    if (first) {
       first = false;
-      console.log(chalk.cyan(' => Roodles is now starting your process...'));
+      console.log(chalk.cyan(' => Roodles is now starting your process...and will restart your process upon file changes.'));
     }
-    else{
+    else {
       console.log(chalk.black.bold(' => Roodles is re-starting your process...'));
     }
 
@@ -249,7 +305,6 @@ watcher.once('ready', function () {
 
     n.stdout.setEncoding('utf8');
     n.stderr.setEncoding('utf8');
-
     n.stdout.pipe(process.stdout);
     n.stderr.pipe(process.stderr);
 
@@ -260,7 +315,7 @@ watcher.once('ready', function () {
         });
         const joined = stck.join('\n');
         console.error('\n');
-        console.error(chalk.bgRed.white(' => Dev server captured stderr from the server => '));
+        console.error(chalk.bgRed.white(' => captured stderr from your process => '));
         console.error(chalk.red.bold(joined));
       }
     });
@@ -282,34 +337,44 @@ watcher.once('ready', function () {
         console.log(' => New process pid => ', k.pid);
       }, 300);
     });
-    k.kill('SIGINT');
+
+    if(roodlesConf.verbosity > 2){
+      console.log(' => Killing your process with the "' + roodlesConf.signal + '" signal.');
+    }
+
+    k.kill(roodlesConf.signal);
 
   }
 
   process.stdin.on('data', function (d) {
     if (String(d).trim() === 'rs') {
-      console.log(' => "rs" captured...relaunching dev server...');
+      if(roodlesConf.verbosity > 1){
+        console.log(' => "rs" captured...');
+      }
       killAndRestart();
     }
   });
 
-  watcher.on('add', path => {
-    console.log(' => watched file added => ', path);
-    console.log(' => restarting server');
-    killAndRestart();
-  });
+  if(roodlesConf.restartUponChange){
+    watcher.on('change', path => {
+      console.log(' => watched file changed => ', path);
+      killAndRestart();
+    });
+  }
 
+  if(roodlesConf.restartUponAddition){
+    watcher.on('add', path => {
+      console.log(' => File within watched path was added => ', path);
+      killAndRestart();
+    });
+  }
 
-  watcher.on('change', path => {
-    console.log(' => watched file changed => ', path);
-    console.log(' => restarting server');
-    killAndRestart();
-  });
-
-
-  watcher.on('unlink', path => {
-      // noop
-  });
+  if(roodlesConf.restartUponUnlink){
+    watcher.on('unlink', path => {
+      console.log(' => file within watched path was unlinked => ', path);
+      killAndRestart();
+    });
+  }
 
 });
 
