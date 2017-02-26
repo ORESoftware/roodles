@@ -37,7 +37,7 @@ var options = [
   {
     names: ['process-args'],
     type: 'string',
-    help: 'These args are directly passed to your running process, surround with quotes like so: ' +
+    help: 'These args are directly passed to your running process, your should surround with quotes like so: ' +
     '--process-args="--foo bar --baz bam".'
   },
   {
@@ -73,7 +73,8 @@ var options = [
   {
     names: ['signal', 's'],
     type: 'string',
-    enum: ['SIGINT', 'SIGTERM', 'SIGKILL']
+    help: 'The --signal option is one of {"SIGINT","SIGTERM","SIGKILL"}.'
+    // enum: ['SIGINT', 'SIGTERM', 'SIGKILL']
   }
 ];
 
@@ -89,9 +90,10 @@ try {
 
 if (opts.help) {
   var help = parser.help({includeEnv: true}).trimRight();
-  console.log('usage: roodles foo.js [OPTIONS]\n'
+  console.log('\n');
+  console.log('usage: roodles [OPTIONS]\n\n'
     + 'options:\n'
-    + help);
+    + help +'\n\n');
   process.exit(0);
 }
 
@@ -132,7 +134,7 @@ if (!projectRoot) {
 else {
   if (opts.verbosity > 1) {
     console.log('\n');
-    console.log(chalk.cyan(' => [roodles] project root => '), chalk.cyan.bold('"' + projectRoot + '"'));
+    console.log(chalk.cyan.bold.underline(' => Roodles considers the following to be your project root => '), chalk.cyan('"' + projectRoot + '"'));
   }
 }
 
@@ -149,11 +151,10 @@ const defaults = {
     /node_modules/,
     /public/,
     /bower_components/,
-    /.git\/.*/,
+    /.git/,
     /.idea/,
     /package.json/,
-    /test/,
-    '.*\.js'
+    /test/
   ]
 };
 
@@ -233,8 +234,8 @@ catch (err) {
   throw  err;
 }
 
-console.log('\n');
 if (roodlesConf.verbosity > 1) {
+  console.log('\n');
   console.log(chalk.green.bold('=> Here is your combined roodles configuration given (1) roodles defaults (2) roodles.conf.js and (3) ' +
     ' your command line arguments => '));
   console.log(chalk.green(util.inspect(roodlesConf)));
@@ -285,15 +286,14 @@ watcher.once('ready', function () {
     console.log('\n');
     if (first) {
       first = false;
-      console.log(chalk.cyan(' => Roodles is now starting your process...and will restart your process upon file changes.'));
+      console.log(chalk.cyan(' => Roodles is now starting your process...and will restart your process upon file changes.'),'\n');
+      console.log(' => Your process was started with => "' + exec + ' ' + roodlesConf.processArgs.join(' ') + '"');
     }
     else {
       console.log(chalk.black.bold(' => Roodles is re-starting your process...'));
     }
 
-    let n = cp.spawn(exec, roodlesConf.processArgs, {
-      env: Object.assign({}, process.env, {})
-    });
+    let n = cp.spawn(exec, roodlesConf.processArgs);
 
     n.on('error', function (err) {
       console.log(' => Server error => ', err.stack || err);
