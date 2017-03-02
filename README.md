@@ -88,7 +88,7 @@ const defaults = {
   verbosity: 2,              // 1 is lowest verbosity, 3 is highest
   signal: 'SIGKILL',         // We recommend using SIGINT or SIGTERM and gracefully shutting down your process instead*
   processArgs: [],           // we don't know what args to pass to your process!
-  retartUponChange: true,
+  restartUponChange: true,
   restartUponAddition: false,
   restartUponUnlink: false,
   processLogPath: null,         // if desired, pass a relative or absolute path to log file

@@ -145,7 +145,7 @@ const defaults = {
   verbosity: 2,
   signal: 'SIGKILL',
   processArgs: [],
-  retartUponChange: true,
+  restartUponChange: true,
   restartUponAddition: false,
   restartUponUnlink: false,
   include: projectRoot,
