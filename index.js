@@ -318,7 +318,7 @@ watcher.once('ready', function () {
   let count = 0;
 
   if ($roodlesConf.verbosity > 2) {
-    console.log('\n', chalk.magenta(' => watched paths => '));
+    console.log('\n', chalk.magenta(' => [roodles] => watched paths => '));
   }
 
   const watched = watcher.getWatched();
@@ -333,34 +333,34 @@ watcher.once('ready', function () {
   });
 
   if ($roodlesConf.verbosity > 1) {
-    console.log('\n',' => Total number of watched paths => ', count,'\n');
+    console.log('\n',' => [roodles] => Total number of watched paths => ', count,'\n');
   }
 
   function launch () {
 
     console.log('\n');
     if (first) {
-      console.log(chalk.cyan(' => Roodles is now starting your process...and will restart ' +
+      console.log(chalk.cyan(' => [roodles] => Roodles is now starting your process...and will restart ' +
         'your process upon file changes.'), '\n');
       if($roodlesConf.verbosity > 1){
-        console.log(' => Your process will be launced with the following command => "' + $roodlesConf.exec +
+        console.log(' => [roodles] => Your process will be launced with the following command => "' + $roodlesConf.exec +
           ' ' + $roodlesConf.processArgs.join(' ') + '"','\n');
       }
     }
     else {
-      console.log(chalk.black.bold(' => Roodles is re-starting your process...'));
+      console.log(chalk.black.bold(' => [roodles] => Roodles is re-starting your process...'));
     }
 
     strm = getStream();
 
     let n = cp.spawn($roodlesConf.exec, $roodlesConf.processArgs);
 
-    if($roodlesConf.verbosity > 1){
-      console.log(' => Your process is running with pid => ', n.pid);
+    if($roodlesConf.verbosity > 1 && first){
+      console.log(' => [roodles] => Your process is running with pid => ', n.pid);
     }
 
     if($roodlesConf.verbosity > 1 && first && !strm){
-      console.log(' => What follows is the stdout/stderr of your process => ','\n');
+      console.log(' => [roodles] => What follows is the stdout/stderr of your process => ','\n');
     }
 
     first = false;
@@ -402,7 +402,7 @@ watcher.once('ready', function () {
       setTimeout(function () {
         k = launch();
         if($roodlesConf.verbosity > 1){
-          console.log(' => Process restarted, new process pid => ', k.pid);
+          console.log(' => [roodles] Process restarted, new process pid => ', k.pid);
         }
       }, 100);
     });
