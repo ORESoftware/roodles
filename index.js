@@ -371,7 +371,8 @@ watcher.once('ready', function () {
 
     n.once('close', function(code){
       if(!n.isRoodlesKilled){
-        console.log(` => [roodles] => looks like your process crashed (with code ${code}, waiting for file changes before restarting.`);
+        console.log(chalk.magenta.bold(` => [roodles] => looks like your process crashed (with code ${code}),\n 
+        ...waiting for file changes before restarting.`));
       }
     });
 
