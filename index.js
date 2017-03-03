@@ -369,6 +369,12 @@ watcher.once('ready', function () {
       console.log(' => Server error => ', err.stack || err);
     });
 
+    n.once('close', function(code){
+      if(!n.isRoodlesKilled){
+        console.log(` => [roodles] => looks like your process crashed (with code ${code}, waiting for file changes before restarting.`);
+      }
+    });
+
     n.stdout.setEncoding('utf8');
     n.stderr.setEncoding('utf8');
     n.stdout.pipe(strm || process.stdout, {end: true, autoClose: true});
@@ -396,7 +402,12 @@ watcher.once('ready', function () {
   process.stdin.setEncoding('utf8');
 
   function killAndRestart () {
-    k.once('close', function () {
+
+    let to = setTimeout(onClose,500);
+    k.once('close', onClose);
+
+    function onClose(){
+      clearTimeout(to);
       k.removeAllListeners();
       k.unref();
       setTimeout(function () {
@@ -404,13 +415,14 @@ watcher.once('ready', function () {
         if($roodlesConf.verbosity > 1){
           console.log(' => [roodles] Process restarted, new process pid => ', k.pid);
         }
-      }, 100);
-    });
+      }, 250);
+    }
 
     if ($roodlesConf.verbosity > 2) {
       console.log(' => Killing your process with the "' + $roodlesConf.signal + '" signal.');
     }
 
+    k.isRoodlesKilled = true;
     k.kill($roodlesConf.signal);
 
   }
