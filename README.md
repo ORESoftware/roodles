@@ -8,8 +8,6 @@ could tweak on our own. Maybe it works better, maybe it doesn't. We think it doe
 All the code is in one file, so you can steal it easily :)
 
 
-
-
 ## Installation
 
 => ```npm install -D roodles@latest```
